@@ -41,10 +41,16 @@ if uploaded_file is not None:
     df1['Connected On'] = pd.to_datetime(df['Connected On'], format="%d %b %Y").dt.date
     df.set_index('Connected On', inplace=True)
 
+
+        
+    # Split the page into two column
+    colA, colB= st.columns([5, 5], gap='medium')
+    
     # Process the DataFrame as needed
     # For example, you can display it, perform computations, or save it to disk
     # Here, we display the DataFrame using Streamlit's built-in DataFrame display function
-    st.write(df1)
+    with colA:
+        st.write(df1)
 
     # Display a message to indicate successful file upload
     st.success("CSV file uploaded successfully!")
@@ -87,7 +93,7 @@ if uploaded_file is not None:
                      text_auto=True, labels={'First Name': 'Connection Count', 'Connected On': ''})
     yearFig.update_yaxes(showticklabels=False)
     yearFig.update_traces(textposition='outside')
-    with col1:
+    with colB:
         st.plotly_chart(yearFig, use_container_width=True)
         
     
