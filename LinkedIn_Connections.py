@@ -16,26 +16,39 @@ st.set_page_config(layout="wide", page_title='LinkedIn Data Insight App', page_i
 st.markdown("<h1 style='text-align:center;'>LinkedIn Data Insight App</h1>", unsafe_allow_html=True)
 st.markdown("<h3 style='text-align:center;'>LinkedIn Connections</h3>", unsafe_allow_html=True)
 
-with st.expander('Connections Insights', expanded=True):
-    uploaded_file = st.file_uploader("Upload Your LinkedIn Conneection CSV File", type="csv")
-    # Check if a file was uploaded
+csv_file = st.file_uploader("Upload Your LinkedIn Conneection CSV File", type="csv")
 
-    def year_plot(dataframe):
-        yearly = dataframe.groupby(dataframe.index.year).count()
-        yearFig = px.bar(yearly, yearly.index, 'First Name', title='<b>Yearly Connections<b>',
-                        text_auto=True, labels={'First Name': 'Connection Count', 'Connected On': ''})
-        yearFig.update_yaxes(showticklabels=False)
-        yearFig.update_traces(textposition='outside')
-        return yearFig
 
-    def month_plot(dataframe):
-        monthly = dataframe.groupby(dataframe.index.month).count()
-        monthlyFig = px.line(monthly, monthly.index, ['First Name', 'Company'])
-        return monthlyFig
-
-    if uploaded_file is not None:
+@st.cache_resource
+def upload():
+    if csv_file is not None:
         # Convert the file contents to a DataFrame using pandas
-        df = pd.read_csv(uploaded_file)
+        file_upload = pd.read_csv(csv_file)
+        return file_upload
+    else:
+        # Display a message if no file was uploaded
+        st.info("Please upload a CSV file.")
+df = upload()
+if df is not None:
+    st.write(df)
+    with st.expander('Connections Insights', expanded=True):
+        # uploaded_file = st.file_uploader("Upload Your LinkedIn Conneection CSV File", type="csv")
+        # # Check if a file was uploaded
+
+        def year_plot(dataframe):
+            yearly = dataframe.groupby(dataframe.index.year).count()
+            yearFig = px.bar(yearly, yearly.index, 'First Name', title='<b>Yearly Connections<b>',
+                            text_auto=True, labels={'First Name': 'Connection Count', 'Connected On': ''})
+            yearFig.update_yaxes(showticklabels=False)
+            yearFig.update_traces(textposition='outside')
+            return yearFig
+
+        def month_plot(dataframe):
+            monthly = dataframe.groupby(dataframe.index.month).count()
+            monthlyFig = px.line(monthly, monthly.index, ['First Name', 'Company'])
+            return monthlyFig
+    
+    
         df['Connected On'] = pd.to_datetime(df['Connected On'], format="%d %b %Y")
         df1= df.copy()
         df1['Connected On'] = pd.to_datetime(df['Connected On'], format="%d %b %Y").dt.date
@@ -140,6 +153,6 @@ with st.expander('Connections Insights', expanded=True):
         with col1:
             st.plotly_chart(topPos, use_container_width=True)
         
-    else:
-        # Display a message if no file was uploaded
-        st.info("Please upload a CSV file.")
+else:
+    # Display a message if no file was uploaded
+    st.info("Please upload a CSV file.")
