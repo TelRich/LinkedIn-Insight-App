@@ -17,142 +17,139 @@ st.markdown("<h1 style='text-align:center;'>LinkedIn Data Insight App</h1>", uns
 st.markdown("<h3 style='text-align:center;'>LinkedIn Connections</h3>", unsafe_allow_html=True)
 
 csv_file = st.file_uploader("Upload Your LinkedIn Conneection CSV File", type="csv")
-
-
-@st.cache_resource
-def upload():
-    if csv_file is not None:
-        # Convert the file contents to a DataFrame using pandas
-        file_upload = pd.read_csv(csv_file)
+try:
+    @st.cache_data
+    def read_csv():
+        file_upload = pd.read_csv(csv_file, skiprows=[0,1])
         return file_upload
-    else:
-        # Display a message if no file was uploaded
-        st.info("Please upload a CSV file.")
-df = upload()
-if df is not None:
-    st.write(df)
-    with st.expander('Connections Insights', expanded=True):
-        # uploaded_file = st.file_uploader("Upload Your LinkedIn Conneection CSV File", type="csv")
-        # # Check if a file was uploaded
 
-        def year_plot(dataframe):
-            yearly = dataframe.groupby(dataframe.index.year).count()
+
+    df = read_csv()
+    if df is not None:
+        with st.expander('Connections Insights', expanded=True):
+            # uploaded_file = st.file_uploader("Upload Your LinkedIn Conneection CSV File", type="csv")
+            # # Check if a file was uploaded
+
+            def year_plot(dataframe):
+                yearly = dataframe.groupby(dataframe.index.year).count()
+                yearFig = px.bar(yearly, yearly.index, 'First Name', title='<b>Yearly Connections<b>',
+                                text_auto=True, labels={'First Name': 'Connection Count', 'Connected On': ''})
+                yearFig.update_yaxes(showticklabels=False)
+                yearFig.update_traces(textposition='outside')
+                return yearFig
+
+            def month_plot(dataframe):
+                monthly = dataframe.groupby(dataframe.index.month).count()
+                monthlyFig = px.line(monthly, monthly.index, ['First Name', 'Company'])
+                return monthlyFig
+        
+        
+            df['Connected On'] = pd.to_datetime(df['Connected On'], format="%d %b %Y")
+            df1= df.copy()
+            df1['Connected On'] = pd.to_datetime(df['Connected On'], format="%d %b %Y").dt.date
+            df.set_index('Connected On', inplace=True)
+
+            # Hiding the numbers on the table
+            hide = """
+            <style>
+            thead tr th:first-child {display:none}
+            tbody th {display:none}
+            </style>
+            """
+            st.markdown(hide, True)
+            
+            text = f"<h3><center>There are a total of {df.shape[0]} connections</center></h3>"
+            st.markdown(text, unsafe_allow_html=True)
+                
+            # Split the page into two column
+            colA, colB= st.columns([5, 5], gap='medium')
+            
+            # Process the DataFrame as needed
+            # For example, you can display it, perform computations, or save it to disk
+            # Here, we display the DataFrame using Streamlit's built-in DataFrame display function
+            with colA:
+                st.write(df1)
+
+            yearly = df.groupby(df.index.year).count()
             yearFig = px.bar(yearly, yearly.index, 'First Name', title='<b>Yearly Connections<b>',
                             text_auto=True, labels={'First Name': 'Connection Count', 'Connected On': ''})
             yearFig.update_yaxes(showticklabels=False)
             yearFig.update_traces(textposition='outside')
-            return yearFig
+            with colB:
+                st.plotly_chart(yearFig, use_container_width=True)
+                
 
-        def month_plot(dataframe):
-            monthly = dataframe.groupby(dataframe.index.month).count()
-            monthlyFig = px.line(monthly, monthly.index, ['First Name', 'Company'])
-            return monthlyFig
-    
-    
-        df['Connected On'] = pd.to_datetime(df['Connected On'], format="%d %b %Y")
-        df1= df.copy()
-        df1['Connected On'] = pd.to_datetime(df['Connected On'], format="%d %b %Y").dt.date
-        df.set_index('Connected On', inplace=True)
-
-        # Hiding the numbers on the table
-        hide = """
-        <style>
-        thead tr th:first-child {display:none}
-        tbody th {display:none}
-        </style>
-        """
-        st.markdown(hide, True)
-        
-        text = f"<h3><center>There are a total of {df.shape[0]} connections</center></h3>"
-        st.markdown(text, unsafe_allow_html=True)
+            # Display a message to indicate successful file upload
+            st.success("CSV file uploaded successfully!")
             
-        # Split the page into two column
-        colA, colB= st.columns([5, 5], gap='medium')
-        
-        # Process the DataFrame as needed
-        # For example, you can display it, perform computations, or save it to disk
-        # Here, we display the DataFrame using Streamlit's built-in DataFrame display function
-        with colA:
-            st.write(df1)
-
-        yearly = df.groupby(df.index.year).count()
-        yearFig = px.bar(yearly, yearly.index, 'First Name', title='<b>Yearly Connections<b>',
-                        text_auto=True, labels={'First Name': 'Connection Count', 'Connected On': ''})
-        yearFig.update_yaxes(showticklabels=False)
-        yearFig.update_traces(textposition='outside')
-        with colB:
-            st.plotly_chart(yearFig, use_container_width=True)
+            month_order = [1,2,3,4,5,6,7,8,9,10,11,12]
+            month_short = [ 'Jan','Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
+            days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
             
-
-        # Display a message to indicate successful file upload
-        st.success("CSV file uploaded successfully!")
-        
-        month_order = [1,2,3,4,5,6,7,8,9,10,11,12]
-        month_short = [ 'Jan','Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-        days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']
-        
-        cola, colb = st.columns([1, 9])
-        
-        with cola:
-            year = st.number_input("Select a year", min_value=1900, max_value=2100, step=1)
-            col11, col22 = st.columns([4,4], gap="small")
+            cola, colb = st.columns([1, 9])
             
-            with col11:
-                filter_button = st.button('Filter')
-            with col22:
-                reset_button = st.button('Reset')
-            # Ask the user to select a year
-            
-            if filter_button:
-                filtered = df[df.index.year == year]
-                if len(filtered) == 0:
-                    st.write(f"No connection for year {year}")
+            with cola:
+                year = st.number_input("Select a year", min_value=1900, max_value=2100, step=1)
+                col11, col22 = st.columns([4,4], gap="small")
+                
+                with col11:
+                    filter_button = st.button('Filter')
+                with col22:
+                    reset_button = st.button('Reset')
+                # Ask the user to select a year
+                
+                if filter_button:
+                    filtered = df[df.index.year == year]
+                    if len(filtered) == 0:
+                        st.write(f"No connection for year {year}")
+                        filtered = df
+                elif reset_button:
                     filtered = df
-            elif reset_button:
-                filtered = df
-            else:
-                filtered = df
+                else:
+                    filtered = df
+                
+            # Split the page into two column
+            col1, col2= st.columns([5, 5], gap='medium')
             
-        # Split the page into two column
-        col1, col2= st.columns([5, 5], gap='medium')
-        
-        monthly = filtered.groupby(filtered.index.month).count()
-        monthlyFig = px.line(monthly, monthly.index, 'First Name', title="<b>Monthly Connections<b>",
-                            labels={'First Name': 'Connection Count', 'Connected On': ''}, text=monthly['First Name'])
-        monthlyFig.update_layout(xaxis = dict(
-            tickvals = month_order,
-            ticktext = month_short
-        ))
-        monthlyFig.update_traces(textposition='top center')
-        monthlyFig.update_yaxes(showticklabels=False)
-        with col2:
-            st.plotly_chart(monthlyFig, use_container_width=True)
+            monthly = filtered.groupby(filtered.index.month).count()
+            monthlyFig = px.line(monthly, monthly.index, 'First Name', title="<b>Monthly Connections<b>",
+                                labels={'First Name': 'Connection Count', 'Connected On': ''}, text=monthly['First Name'])
+            monthlyFig.update_layout(xaxis = dict(
+                tickvals = month_order,
+                ticktext = month_short
+            ))
+            monthlyFig.update_traces(textposition='top center')
+            monthlyFig.update_yaxes(showticklabels=False)
+            with col2:
+                st.plotly_chart(monthlyFig, use_container_width=True)
+                
+                
+            daily = filtered.groupby(filtered.index.day_name()).count().reindex(days)
+            dailyFig = px.line(daily, daily.index, 'First Name', text=daily['First Name'],
+                            title='<b>Connections by Day of the Week<b>', 
+                            labels={'Connected On': '', 'First Name': 'Connections Count'})
+            dailyFig.update_yaxes(showticklabels=False)
+            dailyFig.update_traces(textposition='top center')
+            with col1:
+                st.plotly_chart(dailyFig, use_container_width=True)
             
+            def top_plot(col, title):
+                top_company = filtered[col].value_counts().to_frame(name='Count')[:5].sort_values(by='Count')
+                topFig = px.bar(top_company, 'Count', top_company.index, title=title, labels={'index':''},
+                                text_auto=True)
+                topFig.update_traces(textposition='outside', cliponaxis=False)
+                topFig.update_xaxes(showticklabels=False)
+                return topFig
             
-        daily = filtered.groupby(filtered.index.day_name()).count().reindex(days)
-        dailyFig = px.line(daily, daily.index, 'First Name', text=daily['First Name'],
-                        title='<b>Connections by Day of the Week<b>', 
-                        labels={'Connected On': '', 'First Name': 'Connections Count'})
-        dailyFig.update_yaxes(showticklabels=False)
-        dailyFig.update_traces(textposition='top center')
-        with col1:
-            st.plotly_chart(dailyFig, use_container_width=True)
-        
-        def top_plot(col, title):
-            top_company = filtered[col].value_counts().to_frame(name='Count')[:5].sort_values(by='Count')
-            topFig = px.bar(top_company, 'Count', top_company.index, title=title, labels={'index':''},
-                            text_auto=True)
-            topFig.update_traces(textposition='outside', cliponaxis=False)
-            topFig.update_xaxes(showticklabels=False)
-            return topFig
-        
-        topCom = top_plot('Company', '<b>Top 5 Connect Company<b>')
-        topPos = top_plot('Position', '<b>Top 5 Connect Position<b>')
-        with col2:
-            st.plotly_chart(topCom, use_container_width=True)
-        with col1:
-            st.plotly_chart(topPos, use_container_width=True)
-        
-else:
-    # Display a message if no file was uploaded
-    st.info("Please upload a CSV file.")
+            topCom = top_plot('Company', '<b>Top 5 Connect Company<b>')
+            topPos = top_plot('Position', '<b>Top 5 Connect Position<b>')
+            with col2:
+                st.plotly_chart(topCom, use_container_width=True)
+            with col1:
+                st.plotly_chart(topPos, use_container_width=True)
+            
+    else:
+        # Display a message if no file was uploaded
+        st.info("Please upload a CSV file.")
+except ValueError:
+    print('HI')
